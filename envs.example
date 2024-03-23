@@ -1,0 +1,9 @@
+#!/bin/bash
+
+export TELEGRAM_BOT_ADMIN_ID=
+export TELEGRAM_BOT_DEBUG_MODE=
+export TELEGRAM_BOT_TOKEN=
+export XPANEL_URL=
+export XPANEL_USERNAME=
+export XPANEL_PASSWORD=
+export APP_LOG_MODE=info
