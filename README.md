@@ -1,6 +1,6 @@
 # Alive Bot
 
-Simple Telegram Bot for Getting Status of your server with Golang.
+Simple Telegram Bot for Get Status of your X-UI users with Golang.
 
 ## Environment Variables
 
