@@ -22,6 +22,7 @@ jobs:
         run: |
           docker run -d --name ajor-debtor-bot \
           --restart always \
+          --network host \
           -e TELEGRAM_BOT_DEBUG_MODE=${{ secrets.TELEGRAM_BOT_DEBUG_MODE }} \
           -e TELEGRAM_BOT_ADMIN_ID=${{ secrets.TELEGRAM_BOT_ADMIN_ID }} \
           -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
