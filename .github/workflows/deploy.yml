@@ -11,7 +11,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Delete old ajor-debtor-bot container
-        run: docker stop ajor-debtor-bot && docker rm -f ajor-debtor-bot
+        run: docker rm -f ajor-debtor-bot
       - name: Login to ghcr.io
         uses: docker/login-action@v3
         with:
