@@ -20,4 +20,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Run and pull new image
         run: |
-          docker run -d --name ajor-debtor-bot --restart always -e TELEGRAM_BOT_DEBUG_MODE=${{ secrets.TELEGRAM_BOT_DEBUG_MODE }} -e TELEGRAM_BOT_ADMIN_ID=${{ secrets.TELEGRAM_BOT_ADMIN_ID }} -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} -e XPANEL_URL=${{ secrets.XPANEL_URL }} -e XPANEL_USERNAME=${{ secrets.XPANEL_USERNAME }} -e XPANEL_PASSWORD=${{ secrets.XPANEL_PASSWORD }} -e APP_LOG_MODE=${{ secrets.APP_LOG_MODE }} ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:{{ vars.APP_VERSION }}
+          docker run -d --name ajor-debtor-bot \
+          --restart always \
+          -e TELEGRAM_BOT_DEBUG_MODE=${{ secrets.TELEGRAM_BOT_DEBUG_MODE }} \
+          -e TELEGRAM_BOT_ADMIN_ID=${{ secrets.TELEGRAM_BOT_ADMIN_ID }} \
+          -e TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }} \
+          -e XPANEL_URL=${{ secrets.XPANEL_URL }} \
+          -e XPANEL_USERNAME=${{ secrets.XPANEL_USERNAME }} \
+          -e XPANEL_PASSWORD=${{ secrets.XPANEL_PASSWORD }} \
+          -e APP_LOG_MODE=${{ secrets.APP_LOG_MODE }} \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ vars.APP_VERSION }}
