@@ -62,8 +62,10 @@ func main() {
 		case "help":
 			if checkAdmin(update, bot, tgadminid) {
 				msg.Text = `Commands:
+				- /all -> for get 50 users in each message
+				- /all number -> for get bulk users (under 60)
 				- /debtor
-				- /all
+				- /configs prefix
 				- /status YOUR_UID
 				`
 			} else {
@@ -73,7 +75,10 @@ func main() {
 				`
 			}
 		case "start":
-			msg.Text = "Use /help command to know about this bot."
+			msg.Text = `
+			Welcome to Ajor Debtor Reporter Bot 🧱
+Use /help command to know about this bot.
+			`
 		case "debtor":
 			if checkAdmin(update, bot, tgadminid) {
 				msg.ParseMode = "markdown"
@@ -84,7 +89,18 @@ func main() {
 		case "all":
 			if checkAdmin(update, bot, tgadminid) {
 				msg.ParseMode = "markdown"
-				msg.Text = xray.GetAllClients()
+				blockPart, _ := strconv.Atoi(strings.Split(update.Message.CommandArguments(), " ")[0])
+				result := xray.GetAllClients(blockPart)
+				if result == nil {
+					msg.Text = "Empty."
+				}
+				for item := range result {
+					msg.Text = result[item]
+					if _, err := bot.Send(msg); err != nil {
+						logrus.Error("Error in send message to telegram", err)
+					}
+				}
+				continue
 			} else {
 				msg.Text = "Access Denied."
 			}
@@ -93,6 +109,11 @@ func main() {
 			// xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
 			// msg.Text = "Not implemented."
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
+		case "configs":
+			msg.ParseMode = "markdown"
+			// xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
+			// msg.Text = "Not implemented."
+			msg.Text = xray.GetConfigsWithPrefix(strings.Split(update.Message.CommandArguments(), " ")[0])
 		default:
 			msg.ParseMode = "markdown"
 			msg.Text = "Command not found."
