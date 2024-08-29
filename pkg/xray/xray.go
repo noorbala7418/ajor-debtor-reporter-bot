@@ -172,6 +172,7 @@ func GetConfigsWithPrefix(prefix string) string {
 	}
 	inbounds, _ := getInbounds()
 	totalUsersCount := 0
+	totalUsersTraffic := 0
 	result := ""
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
@@ -183,8 +184,11 @@ func GetConfigsWithPrefix(prefix string) string {
 					clientStatus = "❌"
 				}
 				result = result + "*" + client.Name + "* Total: " +
-					tools.SizeFormat(client.TotalTraffic) + " -- Remain: " + strconv.FormatFloat(trafficDiff, 'f', -1, 32) + "%" + " (" + tools.SizeFormat(trafficRemain) + ")" + clientStatus + "\n"
+					tools.SizeFormat(client.TotalTraffic) + " -- Remain: " +
+					strconv.FormatFloat(trafficDiff, 'f', -1, 32) + "%" + " (" +
+					tools.SizeFormat(trafficRemain) + ")" + clientStatus + "\n"
 				totalUsersCount++
+				totalUsersTraffic += client.TotalTraffic
 			}
 		}
 	}
@@ -193,7 +197,8 @@ func GetConfigsWithPrefix(prefix string) string {
 		return "Empty."
 	}
 	logrus.Info("Count of users with prefix `", prefix, "` is ", totalUsersCount)
-	result = result + "\n\nTotal is: " + strconv.Itoa(totalUsersCount)
+	result = result + "\n\nTotal Count: " + strconv.Itoa(totalUsersCount)
+	result = result + "\nTotal Traffic: " + tools.SizeFormat(totalUsersTraffic, 3)
 	return result
 }
 
