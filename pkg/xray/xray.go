@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// getInbounds Connects to X-UI panel and takes all inbounds in json mode. It returns list of inbounds.
 func getInbounds() (*model.Inbounds, error) {
 	loginCookie := loginXUI()[0]
 	client := &http.Client{}
@@ -50,6 +51,7 @@ func getInbounds() (*model.Inbounds, error) {
 	return &inboundList, nil
 }
 
+// cleanupInbounds clears inbounds and merges related informations from inboundSettings with Clients.
 func cleanupInbounds(input []byte, inbounds *model.Inbounds) error {
 	// Step 1: Get inbounds
 	if err := json.Unmarshal(input, &inbounds); err != nil {
@@ -69,7 +71,7 @@ func cleanupInbounds(input []byte, inbounds *model.Inbounds) error {
 			for _, clientSetting := range inboundSettings.Clients {
 				if inbound.Clients[i].Name == clientSetting.Name {
 					inbound.Clients[i].ID = clientSetting.ID
-					// inbound.Clients[i].Enable = clientSetting.Enable
+					inbound.Clients[i].AdminEnabled = clientSetting.Enable
 				}
 			}
 		}
@@ -78,6 +80,7 @@ func cleanupInbounds(input []byte, inbounds *model.Inbounds) error {
 	return nil
 }
 
+// loginXUI Logins to X-UI panel and returns cookie.
 func loginXUI() []*http.Cookie {
 	client := &http.Client{}
 	loginCred := fmt.Sprintf(`{
@@ -114,6 +117,7 @@ func loginXUI() []*http.Cookie {
 
 // func logoutXUI() {}
 
+// GetAllClients returns list of all clients in string slice. You can pass a number to use pagiantion.
 func GetAllClients(blocks ...int) []string {
 	inbounds, _ := getInbounds()
 	userInMessage := 50
@@ -166,6 +170,7 @@ func GetAllClients(blocks ...int) []string {
 	return msg
 }
 
+// GetConfigsWithPrefix retruns list of all clients that starts with given prefix.
 func GetConfigsWithPrefix(prefix string) string {
 	if len(prefix) == 0 {
 		return "Enter prefix."
@@ -202,15 +207,23 @@ func GetConfigsWithPrefix(prefix string) string {
 	return result
 }
 
+// GetDepletedClients returns list of clients that has no available traffic.
 func GetDepletedClients() string {
 	inbounds, _ := getInbounds()
 	debtorUsersCount := 0
 	result := ""
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
+			// If client has available traffic, then we ignore it.
 			if client.Enable {
 				continue
 			}
+
+			// If client is disabled by admin, then we ignore it.
+			if !client.AdminEnabled {
+				continue
+			}
+
 			debtorUsersCount++
 			result = result + "\n*" + client.Name + "* (`" + client.ID + "`)"
 		}
@@ -224,10 +237,38 @@ func GetDepletedClients() string {
 	return result
 }
 
+// GetDisabledClients returns list of disabled clients by admin.
+func GetDisabledClients() string {
+	inbounds, _ := getInbounds()
+	disabledUsersCount := 0
+	result := ""
+	for _, inbound := range inbounds.Inbounds {
+		for _, client := range inbound.Clients {
+			// If client is enabled by admin, then we ignore it.
+			if client.AdminEnabled {
+				continue
+			}
+
+			disabledUsersCount++
+			result = result + "\n*" + client.Name + "* (`" + client.ID + "`)"
+		}
+	}
+
+	if len(result) == 0 {
+		return "Empty."
+	}
+	logrus.Info("Count of debtor users is ", disabledUsersCount)
+	result = result + "\n\nTotal is: " + strconv.Itoa(disabledUsersCount)
+	return result
+}
+
+// GetSingleConfigStatus returns traffic details for given id.
 func GetSingleConfigStatus(configID string) string {
 	inbounds, _ := getInbounds()
 	var result model.Client
 	configMsg := "*Your config still available.* ✅"
+	adminMsg := "*Your config Disabled by Admin.* 🔧"
+
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
 			if client.ID == configID {
@@ -241,6 +282,11 @@ func GetSingleConfigStatus(configID string) string {
 	if trafficRemain < 0 {
 		configMsg = "*Your config is over.* ❌"
 	}
+
+	if !result.AdminEnabled {
+		configMsg += "\n" + adminMsg
+	}
+
 	msg := fmt.Sprintf("Client Name: *%s*\nClient ID: `%s`\nTotal Traffic: %s\nRemain Traffic: %s\n%s", result.Name, result.ID, tools.SizeFormat(result.TotalTraffic), tools.SizeFormat(trafficRemain), configMsg)
 	logrus.Debug(msg)
 	return msg

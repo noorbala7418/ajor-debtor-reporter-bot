@@ -12,6 +12,7 @@ const ONE_GB = ONE_MB * 1024
 const ONE_TB = ONE_GB * 1024
 const ONE_PB = ONE_TB * 1024
 
+// SizeFormat Converts byte number to correct unit.
 func SizeFormat(size int, prc ...int) string {
 	digitNumbers := 2
 	if len(prc) > 0 {
