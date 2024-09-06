@@ -65,6 +65,7 @@ func main() {
 				- /all -> for get 50 users in each message
 				- /all number -> for get bulk users (under 60)
 				- /debtor
+				- /disabled
 				- /configs prefix
 				- /status YOUR_UID
 				`
@@ -79,6 +80,13 @@ func main() {
 			Welcome to Ajor Debtor Reporter Bot 🧱
 Use /help command to know about this bot.
 			`
+		case "disabled":
+			if checkAdmin(update, bot, tgadminid) {
+				msg.ParseMode = "markdown"
+				msg.Text = xray.GetDisabledClients()
+			} else {
+				msg.Text = "Access Denied."
+			}
 		case "debtor":
 			if checkAdmin(update, bot, tgadminid) {
 				msg.ParseMode = "markdown"
@@ -106,13 +114,9 @@ Use /help command to know about this bot.
 			}
 		case "status":
 			msg.ParseMode = "markdown"
-			// xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
-			// msg.Text = "Not implemented."
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
 		case "configs":
 			msg.ParseMode = "markdown"
-			// xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
-			// msg.Text = "Not implemented."
 			msg.Text = xray.GetConfigsWithPrefix(strings.Split(update.Message.CommandArguments(), " ")[0])
 		default:
 			msg.ParseMode = "markdown"
@@ -125,6 +129,7 @@ Use /help command to know about this bot.
 	}
 }
 
+// checkEnvs Checks environment variables and if one variable does not exist, Then it will Kill application.
 func checkEnvs() {
 	if os.Getenv("TELEGRAM_BOT_ADMIN_ID") == "" {
 		logrus.Error("env variable $TELEGRAM_BOT_ADMIN_ID is not defined")
@@ -163,6 +168,5 @@ func DefineEnvs() {
 }
 
 func checkAdmin(update tgbotapi.Update, bot *tgbotapi.BotAPI, tgAdminID int64) bool {
-
 	return update.Message.Chat.ID == tgAdminID
 }
