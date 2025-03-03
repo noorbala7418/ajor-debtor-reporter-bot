@@ -10,8 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var tgadminid int64
-var tgdebug bool
+var tgdebug bool = false
 
 func init() {
 	// Log as JSON instead of the default ASCII formatter.
@@ -29,7 +28,6 @@ func init() {
 		logrus.SetLevel(logrus.InfoLevel)
 	}
 	checkEnvs()
-	DefineEnvs()
 }
 
 func main() {
@@ -41,7 +39,7 @@ func main() {
 	bot.Debug = tgdebug
 
 	logrus.Info("Registered On BOT: ", bot.Self.UserName)
-	logrus.Info("Admin ID: ", tgadminid)
+	logrus.Info("Admin IDs: ", os.Getenv("TELEGRAM_BOT_ADMIN_ID"))
 	logrus.Info("DEBUG MODE: ", tgdebug)
 
 	updateConfig := tgbotapi.NewUpdate(0)
@@ -60,14 +58,14 @@ func main() {
 		// Extract the command from the Message.
 		switch update.Message.Command() {
 		case "help":
-			if checkAdmin(update, bot, tgadminid) {
+			if isAdmin(update) {
 				msg.Text = `Commands:
-				- /all -> for get 50 users in each message
-				- /all number -> for get bulk users (under 60)
+				- /all (number) -> for get bulk users (under 60) - Default is 50
 				- /debtor
 				- /disabled
 				- /configs prefix
 				- /status YOUR_UID
+				- /s YOUR_UID
 				`
 			} else {
 				msg.Text = `
@@ -81,21 +79,21 @@ func main() {
 Use /help command to know about this bot.
 			`
 		case "disabled":
-			if checkAdmin(update, bot, tgadminid) {
+			if isAdmin(update) {
 				msg.ParseMode = "markdown"
 				msg.Text = xray.GetDisabledClients()
 			} else {
 				msg.Text = "Access Denied."
 			}
 		case "debtor":
-			if checkAdmin(update, bot, tgadminid) {
+			if isAdmin(update) {
 				msg.ParseMode = "markdown"
 				msg.Text = xray.GetDepletedClients()
 			} else {
 				msg.Text = "Access Denied."
 			}
 		case "all":
-			if checkAdmin(update, bot, tgadminid) {
+			if isAdmin(update) {
 				msg.ParseMode = "markdown"
 				blockPart, _ := strconv.Atoi(strings.Split(update.Message.CommandArguments(), " ")[0])
 				result := xray.GetAllClients(blockPart)
@@ -113,6 +111,9 @@ Use /help command to know about this bot.
 				msg.Text = "Access Denied."
 			}
 		case "status":
+			msg.ParseMode = "markdown"
+			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
+		case "s":
 			msg.ParseMode = "markdown"
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
 		case "configs":
@@ -137,8 +138,9 @@ func checkEnvs() {
 	}
 
 	if os.Getenv("TELEGRAM_BOT_DEBUG_MODE") == "" {
-		logrus.Error("env variable $TELEGRAM_BOT_DEBUG_MODE is not defined")
-		os.Exit(1)
+		logrus.Warning("env variable $TELEGRAM_BOT_DEBUG_MODE is not defined. Default is False")
+	} else {
+		tgdebug, _ = strconv.ParseBool(os.Getenv("TELEGRAM_BOT_DEBUG_MODE"))
 	}
 
 	if os.Getenv("TELEGRAM_BOT_TOKEN") == "" {
@@ -162,11 +164,15 @@ func checkEnvs() {
 	}
 }
 
-func DefineEnvs() {
-	tgadminid, _ = strconv.ParseInt(os.Getenv("TELEGRAM_BOT_ADMIN_ID"), 10, 64)
-	tgdebug, _ = strconv.ParseBool(os.Getenv("TELEGRAM_BOT_DEBUG_MODE"))
-}
-
-func checkAdmin(update tgbotapi.Update, bot *tgbotapi.BotAPI, tgAdminID int64) bool {
-	return update.Message.Chat.ID == tgAdminID
+// isAdmin returns True when user ID equals to one of admin IDs.
+func isAdmin(update tgbotapi.Update) bool {
+	adminIDs := strings.Split(os.Getenv("TELEGRAM_BOT_ADMIN_ID"), ",")
+	for i := 0; i < len(adminIDs); i++ {
+		id, _ := strconv.ParseInt(adminIDs[i], 10, 64)
+		if update.Message.Chat.ID == id {
+			logrus.Debug("Got admin request from ", adminIDs[i])
+			return true
+		}
+	}
+	return false
 }
