@@ -4,8 +4,8 @@ Simple Telegram Bot for Get Status of your X-UI users with Golang.
 
 ## Environment Variables
 
-- `TELEGRAM_BOT_DEBUG_MODE`: Enable or Disable Debug mode. Possible values: `true` or `false`.
-- `TELEGRAM_BOT_ADMIN_ID`: Telegram ID of admin user.
+- `TELEGRAM_BOT_DEBUG_MODE`: Enable or Disable Debug mode. Possible values: `true` or `false`. Default is false.
+- `TELEGRAM_BOT_ADMIN_ID`: Telegram ID of admin user. You can add more admins using comma. exmaple: 12233,121121
 - `TELEGRAM_BOT_TOKEN`: API Token.
 - `XPANEL_URL`: X-UI panel address. like `http://localhost:54321`.
 - `XPANEL_USERNAME`: X-UI Username like `admin`.
