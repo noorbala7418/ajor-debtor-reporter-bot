@@ -12,13 +12,14 @@ type Inbound struct {
 }
 
 type Client struct {
+	ID              string `json:"-"`
+	Name            string `json:"email"`
 	Enable          bool   `json:"enable"`
 	AdminEnabled    bool   `json:"-"`
 	TotalTraffic    int    `json:"total"`
 	UploadTraffic   int    `json:"up"`
 	DownloadTraffic int    `json:"down"`
-	ID              string `json:"-"`
-	Name            string `json:"email"`
+	RemainTraffic   int    `json:"-"`
 }
 
 type Settings struct {
