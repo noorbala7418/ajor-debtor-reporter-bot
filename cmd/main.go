@@ -66,6 +66,7 @@ func main() {
 				- /configs prefix
 				- /status YOUR_UID
 				- /s YOUR_UID
+				- /almost (number) -> Get configs that will be over soon (Default is 1GB).
 				`
 			} else {
 				msg.Text = `
@@ -117,8 +118,20 @@ Use /help command to know about this bot.
 			msg.ParseMode = "markdown"
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
 		case "configs":
-			msg.ParseMode = "markdown"
-			msg.Text = xray.GetConfigsWithPrefix(strings.Split(update.Message.CommandArguments(), " ")[0])
+			if isAdmin(update) {
+				msg.ParseMode = "markdown"
+				msg.Text = xray.GetConfigsWithPrefix(strings.Split(update.Message.CommandArguments(), " ")[0])
+			} else {
+				msg.Text = "Access Denied."
+			}
+		case "almost":
+			if isAdmin(update) {
+				msg.ParseMode = "markdown"
+				limit, _ := strconv.Atoi(strings.Split(update.Message.CommandArguments(), " ")[0])
+				msg.Text = xray.GetConfigsAlmostOver(limit)
+			} else {
+				msg.Text = "Access Denied."
+			}
 		default:
 			msg.ParseMode = "markdown"
 			msg.Text = "Command not found."

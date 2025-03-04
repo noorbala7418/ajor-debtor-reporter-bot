@@ -72,6 +72,7 @@ func cleanupInbounds(input []byte, inbounds *model.Inbounds) error {
 				if inbound.Clients[i].Name == clientSetting.Name {
 					inbound.Clients[i].ID = clientSetting.ID
 					inbound.Clients[i].AdminEnabled = clientSetting.Enable
+					inbound.Clients[i].RemainTraffic = inbound.Clients[i].TotalTraffic - (inbound.Clients[i].DownloadTraffic + inbound.Clients[i].UploadTraffic)
 				}
 			}
 		}
@@ -131,16 +132,15 @@ func GetAllClients(blocks ...int) []string {
 	// Step 1: Get all clients
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
-			trafficRemain := client.TotalTraffic - (client.DownloadTraffic + client.UploadTraffic)
-			trafficDiff := float64(float64(trafficRemain)/float64(client.TotalTraffic*1.0)) * 100
+			trafficDiff := float64(float64(client.RemainTraffic)/float64(client.TotalTraffic*1.0)) * 100
 
-			logrus.Debug("Remain traffic for user " + client.Name + " is: " + tools.SizeFormat(trafficRemain))
+			logrus.Debug("Remain traffic for user " + client.Name + " is: " + tools.SizeFormat(client.RemainTraffic))
 			logrus.Debug("Remain traffic percent for user " + client.Name + " is: " + strconv.FormatFloat(trafficDiff, 'f', -1, 32))
 			logrus.Debug("down traffic for user " + client.Name + "is: " + tools.SizeFormat(client.DownloadTraffic))
 			logrus.Debug("up traffic for user " + client.Name + "is: " + tools.SizeFormat(client.UploadTraffic))
 
 			clientReport = append(clientReport, "*"+client.Name+"* Total: "+
-				tools.SizeFormat(client.TotalTraffic)+" -- Remain: "+strconv.FormatFloat(trafficDiff, 'f', -1, 32)+"%"+" ("+tools.SizeFormat(trafficRemain)+")")
+				tools.SizeFormat(client.TotalTraffic)+" -- Remain: "+strconv.FormatFloat(trafficDiff, 'f', -1, 32)+"%"+" ("+tools.SizeFormat(client.RemainTraffic)+")")
 		}
 	}
 
@@ -182,16 +182,15 @@ func GetConfigsWithPrefix(prefix string) string {
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
 			if strings.HasPrefix(client.Name, prefix) {
-				trafficRemain := client.TotalTraffic - (client.DownloadTraffic + client.UploadTraffic)
-				trafficDiff := float64(float64(trafficRemain)/float64(client.TotalTraffic*1.0)) * 100
+				trafficDiff := float64(float64(client.RemainTraffic)/float64(client.TotalTraffic*1.0)) * 100
 				clientStatus := "✅"
-				if trafficRemain < 0 {
+				if client.RemainTraffic < 0 {
 					clientStatus = "❌"
 				}
 				result = result + "*" + client.Name + "* Total: " +
 					tools.SizeFormat(client.TotalTraffic) + " -- Remain: " +
 					strconv.FormatFloat(trafficDiff, 'f', -1, 32) + "%" + " (" +
-					tools.SizeFormat(trafficRemain) + ")" + clientStatus + "\n"
+					tools.SizeFormat(client.RemainTraffic) + ")" + clientStatus + "\n"
 				totalUsersCount++
 				totalUsersTraffic += client.TotalTraffic
 			}
@@ -278,8 +277,7 @@ func GetSingleConfigStatus(configID string) string {
 		}
 	}
 
-	trafficRemain := (result.TotalTraffic - (result.DownloadTraffic + result.UploadTraffic))
-	if trafficRemain < 0 {
+	if result.RemainTraffic < 0 {
 		configMsg = "*Your config is over.* ❌"
 	}
 
@@ -287,7 +285,47 @@ func GetSingleConfigStatus(configID string) string {
 		configMsg += "\n" + adminMsg
 	}
 
-	msg := fmt.Sprintf("Client Name: *%s*\nClient ID: `%s`\nTotal Traffic: %s\nRemain Traffic: %s\n%s", result.Name, result.ID, tools.SizeFormat(result.TotalTraffic), tools.SizeFormat(trafficRemain), configMsg)
+	msg := fmt.Sprintf("Client Name: *%s*\nClient ID: `%s`\nTotal Traffic: %s\nRemain Traffic: %s\n%s", result.Name, result.ID, tools.SizeFormat(result.TotalTraffic), tools.SizeFormat(result.RemainTraffic), configMsg)
 	logrus.Debug(msg)
 	return msg
+}
+
+// GetConfigsAlmostOver returns config names under limit value. unit is GB. Default is 1GB
+func GetConfigsAlmostOver(limit ...int) string {
+	var limitValue = 1 * 1024 * 1024 * 1024 // Means 1 GB
+
+	if len(limit) > 0 && limit[0] != 0 {
+		limitValue = limit[0]
+		limitValue = limitValue * 1024 * 1024 * 1024
+	}
+	inbounds, _ := getInbounds()
+	totalUsersCount := 0
+
+	result := ""
+	for _, inbound := range inbounds.Inbounds {
+		for _, client := range inbound.Clients {
+
+			if client.RemainTraffic <= limitValue {
+				// If client is disabled by admin, then we ignore it.
+				if !client.AdminEnabled {
+					continue
+				}
+
+				trafficDiff := float64(float64(client.RemainTraffic)/float64(client.TotalTraffic*1.0)) * 100
+
+				result = result + "*" + client.Name + "* Total: " +
+					tools.SizeFormat(client.TotalTraffic) + " -- Remain: " +
+					strconv.FormatFloat(trafficDiff, 'f', -1, 32) + "%" + " (" +
+					tools.SizeFormat(client.RemainTraffic) + ")" + "\n"
+				totalUsersCount++
+			}
+		}
+	}
+
+	if len(result) == 0 {
+		return "Empty."
+	}
+	logrus.Info("Count of almost done users is ", totalUsersCount)
+	result = result + "\n\nTotal Count: " + strconv.Itoa(totalUsersCount)
+	return result
 }
