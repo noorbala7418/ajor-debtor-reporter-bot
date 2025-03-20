@@ -1,4 +1,4 @@
-FROM golang:1.23-alpine as builder
+FROM golang:1.23-alpine AS builder
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build ./cmd/main.go
 
-FROM alpine:3.19
+FROM alpine:3.20
 
 ENV TELEGRAM_BOT_DEBUG_MODE=false
 
