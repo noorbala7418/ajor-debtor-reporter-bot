@@ -31,6 +31,9 @@ func init() {
 }
 
 func main() {
+	logrus.Info("ajor debtor reporter bot")
+	logrus.Info("application version: ", os.Getenv("APP_VERSION"))
+
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_BOT_TOKEN"))
 	if err != nil {
 		logrus.Error(err)
@@ -38,9 +41,10 @@ func main() {
 	}
 	bot.Debug = tgdebug
 
-	logrus.Info("Registered On BOT: ", bot.Self.UserName)
-	logrus.Info("Admin IDs: ", os.Getenv("TELEGRAM_BOT_ADMIN_ID"))
-	logrus.Info("DEBUG MODE: ", tgdebug)
+	logrus.Info("application started")
+	logrus.Info("registered on telegram bot: ", bot.Self.UserName)
+	logrus.Info("admin IDs: ", os.Getenv("TELEGRAM_BOT_ADMIN_ID"))
+	logrus.Info("telegram debug mode: ", tgdebug)
 
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 30
@@ -60,13 +64,14 @@ func main() {
 		case "help":
 			if isAdmin(update) {
 				msg.Text = `Commands:
-				- /all (number) -> for get bulk users (under 60) - Default is 50
+				- /all (number) -> for get bulk users (under 60)-(Default is 50).
 				- /debtor
 				- /disabled
 				- /configs prefix
 				- /status YOUR_UID
 				- /s YOUR_UID
 				- /almost (number) -> Get configs that will be over soon (Default is 1GB).
+				- /report -> Print users usage and panel statistics.
 				`
 			} else {
 				msg.Text = `
@@ -112,8 +117,6 @@ Use /help command to know about this bot.
 				msg.Text = "Access Denied."
 			}
 		case "status":
-			msg.ParseMode = "markdown"
-			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
 		case "s":
 			msg.ParseMode = "markdown"
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
@@ -129,6 +132,13 @@ Use /help command to know about this bot.
 				msg.ParseMode = "markdown"
 				limit, _ := strconv.Atoi(strings.Split(update.Message.CommandArguments(), " ")[0])
 				msg.Text = xray.GetConfigsAlmostOver(limit)
+			} else {
+				msg.Text = "Access Denied."
+			}
+		case "report":
+			if isAdmin(update) {
+				msg.ParseMode = "markdown"
+				msg.Text = xray.GetPanelReports()
 			} else {
 				msg.Text = "Access Denied."
 			}
@@ -175,6 +185,10 @@ func checkEnvs() {
 		logrus.Error("env variable $XPANEL_PASSWORD is not defined")
 		os.Exit(1)
 	}
+
+	if os.Getenv("APP_VERSION") == "" {
+		logrus.Warning("env variable APP_VERSION is not defined")
+	}
 }
 
 // isAdmin returns True when user ID equals to one of admin IDs.
@@ -183,7 +197,7 @@ func isAdmin(update tgbotapi.Update) bool {
 	for i := 0; i < len(adminIDs); i++ {
 		id, _ := strconv.ParseInt(adminIDs[i], 10, 64)
 		if update.Message.Chat.ID == id {
-			logrus.Debug("Got admin request from ", adminIDs[i])
+			logrus.Debug("receive admin request from ", adminIDs[i])
 			return true
 		}
 	}

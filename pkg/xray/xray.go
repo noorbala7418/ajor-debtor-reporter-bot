@@ -187,10 +187,13 @@ func GetConfigsWithPrefix(prefix string) string {
 				if client.RemainTraffic < 0 {
 					clientStatus = "❌"
 				}
-				result = result + "*" + client.Name + "* Total: " +
+				if !client.AdminEnabled {
+					clientStatus = "🚫"
+				}
+				result = result + "👤 *" + client.Name + "* Total: " +
 					tools.SizeFormat(client.TotalTraffic) + " -- Remain: " +
 					strconv.FormatFloat(trafficDiff, 'f', -1, 32) + "%" + " (" +
-					tools.SizeFormat(client.RemainTraffic) + ")" + clientStatus + "\n"
+					tools.SizeFormat(client.RemainTraffic) + ") " + clientStatus + "\n"
 				totalUsersCount++
 				totalUsersTraffic += client.TotalTraffic
 			}
@@ -265,8 +268,8 @@ func GetDisabledClients() string {
 func GetSingleConfigStatus(configID string) string {
 	inbounds, _ := getInbounds()
 	var result model.Client
-	configMsg := "*Your config still available.* ✅"
-	adminMsg := "*Your config Disabled by Admin.* 🔧"
+	configMsg := "\n*Your config is still available.* ✅"
+	adminMsg := "\n*Your config is Disabled by Admin.* 🚫"
 
 	for _, inbound := range inbounds.Inbounds {
 		for _, client := range inbound.Clients {
@@ -278,14 +281,15 @@ func GetSingleConfigStatus(configID string) string {
 	}
 
 	if result.RemainTraffic < 0 {
-		configMsg = "*Your config is over.* ❌"
+		configMsg = "\n*Your config is expired.* ❌"
 	}
 
 	if !result.AdminEnabled {
-		configMsg += "\n" + adminMsg
+		configMsg += adminMsg
 	}
 
-	msg := fmt.Sprintf("Client Name: *%s*\nClient ID: `%s`\nTotal Traffic: %s\nRemain Traffic: %s\n%s", result.Name, result.ID, tools.SizeFormat(result.TotalTraffic), tools.SizeFormat(result.RemainTraffic), configMsg)
+	msg := fmt.Sprintf("👤 Client Name: *%s*\n🔑 Client ID: `%s`\n☁️ Total Traffic: %s\n♻️ Remain Traffic: %s\n%s",
+		result.Name, result.ID, tools.SizeFormat(result.TotalTraffic), tools.SizeFormat(result.RemainTraffic), configMsg)
 	logrus.Debug(msg)
 	return msg
 }
@@ -331,5 +335,42 @@ func GetConfigsAlmostOver(limit ...int) string {
 	}
 	logrus.Info("Count of almost done users is ", totalUsersCount)
 	result = result + "\n\nTotal Count: " + strconv.Itoa(totalUsersCount)
+	return result
+}
+
+// GetPanelReports reports total users, total trafic usage, total disabled and expired users and count of almost over configs.
+func GetPanelReports() string {
+	inbounds, _ := getInbounds()
+	logrus.Debug("function GetPanelReports: inbounds received")
+	totalUsersCount := 0
+	totalTrafficUsage := 0
+	totalAdminDisabledUsers := 0
+	totalExpiredUsers := 0
+	totalAlmostOverUsers := 0
+	limitValue := 1 * 1024 * 1024 * 1024 // Means 1 GB
+
+	for _, inbound := range inbounds.Inbounds {
+		for _, client := range inbound.Clients {
+			totalUsersCount++
+			totalTrafficUsage += client.DownloadTraffic + client.UploadTraffic
+			if !client.AdminEnabled {
+				totalAdminDisabledUsers++
+			} else {
+				if !client.Enable {
+					totalExpiredUsers++
+				} else {
+					if client.RemainTraffic <= limitValue {
+						totalAlmostOverUsers++
+					}
+				}
+			}
+		}
+	}
+
+	result := fmt.Sprintf("🧱*AJOR REPORT*🧱\n\nApplication Version: %s\nTotal Users: %d\nTotal Trafic Usage: %s\nTotal Expired Users: %d\nTotal Admin Disabled Users: %d\nCount of Under 1GB Users: %d",
+		os.Getenv("APP_VERSION"), totalUsersCount, tools.SizeFormat(totalTrafficUsage),
+		totalExpiredUsers, totalAdminDisabledUsers, totalAlmostOverUsers)
+
+	logrus.Debug("function GetPanelReports: ", result)
 	return result
 }
