@@ -311,6 +311,10 @@ func GetConfigsAlmostOver(limit ...int) string {
 					continue
 				}
 
+				if !client.Enable {
+					continue
+				}
+
 				trafficDiff := float64(float64(client.RemainTraffic)/float64(client.TotalTraffic*1.0)) * 100
 
 				result = result + "*" + client.Name + "* Total: " +
