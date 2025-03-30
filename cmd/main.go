@@ -117,6 +117,7 @@ Use /help command to know about this bot.
 				msg.Text = "Access Denied."
 			}
 		case "status":
+			fallthrough
 		case "s":
 			msg.ParseMode = "markdown"
 			msg.Text = xray.GetSingleConfigStatus(strings.Split(update.Message.CommandArguments(), " ")[0])
